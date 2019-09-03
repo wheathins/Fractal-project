@@ -5,49 +5,53 @@ import cmath as cm
 
 def mandelbrot(res, iterations):
     res_c = 2
+    point_c = 0
 
     while res_c <= res:
-        #create numpy array to store scaling factor and mandelbrot point amount
-        x_c = 0
-        y_c = 0
+        real_c = 0
+        imag_c = 0
         step = 4/res_c
         iter_c = 1
         z = 0
 
-        reg_array = np.array([])
-        reg_array = reg_array.astype('int32')
-        point_c = 0
-
-        while y_c <= res_c:
-
-            while x_c <= res_c:
-
-                real = (2-(step*x_c))
-                imag = (2-(step*y_c))
+        while imag_c <= res_c:
+            while real_c <= res_c:
+                z = 0
+                real = (2-(step*real_c))
+                imag = (2-(step*imag_c))
                 con = complex(real, imag)
 
-                while iter_c <= iterations and abs(con) < 2:
-                    z = (z ** 2) + con
-                    iter_c = iter_c + 1
+                for n in range(iterations):
+                    z = z*z + con
+                    if abs(z) >= 2:
+                        break
 
-                    if iter_c == iterations:
+                    elif abs(z) < 2 and n == iterations - 1:
                         point_c = point_c + 1
+                        print("Found one!", res_c, abs(z))
+                        break
 
                     else:
                         pass
 
-                x_c = x_c + 1
-                z = 0
+                real_c = real_c + 1
 
-            x_c = 0
-            y_c = y_c + 1
+            real_c = 0
+            imag_c = imag_c + 1
 
-        np.insert(reg_array, reg_array.shape, [res_c, point_c])
+        if res_c == 2:
+            reg_array = np.array([[(res_c) ** 2, point_c]])
+            reg_array = reg_array.astype('int32')
+
+        else:
+            reg_array = np.append(reg_array, [[(res_c) ** 2, point_c]], axis = 0)
+
         res_c = res_c + 1
+        point_c = 0
 
-    print(point_c)
+
     print(reg_array)
     print(reg_array.shape)
 
 
-mandelbrot(20, 10)
+mandelbrot(100, 1000000)
