@@ -1,31 +1,41 @@
+#package import
+#Numpy and sklearn aren't native to python, so you will need to install them
 import numpy as np
-import quaternion
-import tensorflow as tf
+import math as m
 import cmath as cm
+from sklearn.linear_model import LinearRegression
 
-def mandelbrot(res, iterations):
-    res_c = 2
+#the function loopy mandelbrot uses loops(very slow!) to calculate the hasudorff dimension of the mandelbrot set
+#Recommended values for the loopy_mandelbrot_set is res_c = 10, res > 150, iterations = 10000 for larger res values, 100000 for smaller res values 
+#It works better for larger iteration values and smaller res values
+def loopy_mandelbrot_set(res_c, res, iterations):
+    #point_c is a var used to track the amount of points in the set for a given plot
     point_c = 0
-
+    #big is a dummy var used to keep track of the initial plot resolution
+    big = res_c
+    
+    #this first while loop increases the resolution of the mandelbrot set plot by one each iteration
     while res_c <= res:
         real_c = 0
         imag_c = 0
         step = 4/res_c
-        iter_c = 1
         z = 0
-
+        
+        #these two while loops over the complex plane to test all the points between -2 and 2 in the real axis and -2 and 2 on the imaginary axis
         while imag_c <= res_c:
             while real_c <= res_c:
                 z = 0
                 real = (2-(step*real_c))
                 imag = (2-(step*imag_c))
                 con = complex(real, imag)
-
+                
+                #this for loop tests whether the points created in the loops above are in the mandelbrot set
+                #the if, elif, else logic inside the loop adds points in the set to the point_c var
                 for n in range(iterations):
                     z = z*z + con
                     if abs(z) >= 2:
                         break
-
+                    
                     elif abs(z) < 2 and n == iterations - 1:
                         point_c = point_c + 1
                         print("Found one!", res_c, abs(z))
@@ -38,87 +48,41 @@ def mandelbrot(res, iterations):
 
             real_c = 0
             imag_c = imag_c + 1
+            
+        #the if condition creates the arrays used to store the scaling factor and number of points in the mandelbrot for each resolution iteration
+        #the log is taken of the x var so it become linear
+        if res_c == big:
+            x = np.array([m.sqrt((res_c ** 2)/(big ** 2))])
+            y = np.array([m.log10(point_c)])
 
-        if res_c == 2:
-            reg_array = np.array([[(res_c) ** 2, point_c]])
-            reg_array = reg_array.astype('int32')
-
+        #the else condition adds the values the arrays created during the first iteration of the resolution loop
         else:
-            reg_array = np.append(reg_array, [[(res_c) ** 2, point_c]], axis = 0)
+           x = np.append(x, [m.sqrt((res_c ** 2)/(big ** 2))], axis = 0)
+           y = np.append(y, [m.log10(point_c)], axis=0)
 
         res_c = res_c + 1
         point_c = 0
+        
+    #reshape the arrays so the sklearn library can perform a linear regression
+    x = x.reshape((-1,1))
+    y = y.flatten()
+    print(x, y)
+    print(x.shape, y.shape)
+    
+    #call and perform a linear regression on the x and y arrays
+    model = LinearRegression()
+    model.fit(x, y)
+    r_sq = model.score(x, y)
+    #print the results
+    #the slope of the line is the scaling factor, aka, the hausdorff dimension
+    #the intercept is the is the scaling constant, an example for a scaling factor is pi. Pi is the scaling factor a circle. 
+    print('r^2:', r_sq)
+    print("The equation is: y=", model.coef_, "x +", model.intercept_)
+    #the scaling factor and scaling constant must be raised the 10 ^ to undo the log taken used to make the relationship linear
+    scaling_factor = 10 ** model.coef_
+    scaling_constant = 10 ** model.intercept_
+    print("The Dimenionsality is:", scaling_factor)
+    print("The Scaling Factor is:", scaling_constant)
+    
 
-
-    print(reg_array)
-    print(reg_array.shape)
-
-
-
-
-def quat_mandelbrot(res_q, iterations_q):
-    res_c_q = 2
-    point_c_q = 0
-
-    while res_c_q <= res_q:
-        r_c_q = 0
-        i_c_q = 0
-        j_c_q = 0
-        k_c_q = 0
-        step_q = 4/res_c_q
-        iter_c_q = 1
-        z_q = 0
-
-        while k_c_q <= res_c_q:
-            while j_c_q <= res_c_q:
-                while i_c_q <= res_c_q:
-                    while r_c_q <= res_c_q:
-                        z = 0
-                        r_q = (2-(step_q*r_c_q))
-                        i_q = (2-(step_q*i_c_q))
-                        j_q = (2-(step_q*j_c_q))
-                        k_q = (2-(step_q*k_c_q))
-                        quat = np.quaternion(r_q, i_q, j_q, k_q)
-
-                        for n in range(iterations_q):
-                            z_q = z_q*z_q + quat
-                            #print(quat, n, np.quaternion.abs(z_q))
-                            if np.quaternion.abs(z_q) >= 2:
-                                print(np.quaternion.abs(z_q) >= 2)
-                                break
-
-                            elif np.quaternion.abs(z_q) < 2 and n == iterations_q - 1:
-                                print(np.quaternion.abs(z_q) < 2 and n == iterations_q - 1)
-                                point_c_q = point_c_q + 1
-                                print("Found one!", res_c_q, np.quaternion.abs(z_q))
-                                break
-
-                            else:
-                                pass
-
-                        r_c_q = r_c_q + 1
-
-                    r_c_q = 0
-                    i_c_q = i_c_q + 1
-
-                i_c_q = 0
-                j_c_q = j_c_q + 1
-
-            j_c_q = 0
-            k_c_q = k_c_q + 1
-
-        if res_c_q == 2:
-            reg_array_q = np.array([[(res_c_q) ** 4, point_c_q]])
-            reg_array_q = reg_array_q.astype('int32')
-
-        else:
-            reg_array_q = np.append(reg_array_q, [[(res_c_q) ** 4, point_c_q]], axis = 0)
-
-        res_c_q = res_c_q + 1
-        point_c_q = 0
-
-
-    print(reg_array_q)
-    print(reg_array_q.shape)
-
-quat_mandelbrot(5, 1)
+loopy_mandelbrot_set(10, 50, 1000000)
