@@ -7,8 +7,9 @@ from sklearn.linear_model import LinearRegression
 
 #the function loopy mandelbrot uses loops(very slow!) to calculate the hasudorff dimension of the mandelbrot set
 #Recommended values for the loopy_mandelbrot_set is res_c = 10, res > 150, iterations = 10000 for larger res values, 100000 for smaller res values
-#It works better for larger iteration values and smaller res values
-def loopy_mandelbrot_set(res_c, res, iterations):
+#It works better for larger res values and smaller iteration values
+#the growth_rate var controls the expontial scaling of resolutions tested, use 1 for a standard loop++ experience, otherwise use values between 1 and 2 to speed up time
+def loopy_mandelbrot_set(res_c, res, iterations, growth_rate):
     #point_c is a var used to track the amount of points in the set for a given plot
     point_c = 0
     #big is a dummy var used to keep track of the initial plot resolution
@@ -60,7 +61,7 @@ def loopy_mandelbrot_set(res_c, res, iterations):
            x = np.append(x, [m.log10(res_c)], axis = 0)
            y = np.append(y, [m.log10(point_c)], axis=0)
 
-        res_c = m.floor(res_c * 1.2)
+        res_c = m.floor(res_c * growth_rate) + 1
         point_c = 0
 
     #reshape the arrays so the sklearn library can perform a linear regression
@@ -83,4 +84,4 @@ def loopy_mandelbrot_set(res_c, res, iterations):
 def paralleized_mandelbrot_set(res_c, res, iterations):
     print(res_c, res, iterations)
 
-loopy_mandelbrot_set(10, 10000, 100)
+loopy_mandelbrot_set(10, 5000, 1000, 1.1)
