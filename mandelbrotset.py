@@ -1,8 +1,9 @@
 #package import
 #Numpy and sklearn aren't native to python, so you will need to install them
 import numpy as np
+import cupy as cp
 import math as m
-import cmath as cm
+from tqdm import tqdm
 from sklearn.linear_model import LinearRegression
 
 #the function loopy mandelbrot uses loops(very slow!) to calculate the hasudorff dimension of the mandelbrot set
@@ -10,7 +11,7 @@ from sklearn.linear_model import LinearRegression
 #It works better for larger res values and smaller iteration values
 #the growth_rate var controls the expontial scaling of resolutions tested, use 1 for a standard loop++ experience, otherwise use values between 1 and 2 to speed up time
 def loopy_mandelbrot_set(res_c, res, iterations, growth_rate):
-    #point_c is a var used to track the amount of points in the set for a given plot
+   #point_c is a var used to track the amount of points in the set for a given plot
     point_c = 0
     #big is a dummy var used to keep track of the initial plot resolution
     big = res_c
@@ -81,7 +82,64 @@ def loopy_mandelbrot_set(res_c, res, iterations, growth_rate):
 
 
 
-def paralleized_mandelbrot_set(res_c, res, iterations):
-    print(res_c, res, iterations)
 
-loopy_mandelbrot_set(10, 5000, 1000, 1.1)
+def paralleized_mandelbrot_set(res_c, res, iterations, growth_rate):
+    point_c = 1
+
+    big = res_c
+
+    while res_c <= res:
+        mempool = cp.get_default_memory_pool()
+        mempool.free_all_blocks()
+
+        print("Next Resolution: ", res_c, "x", res_c, ";Testing ", res_c ** 2, " points")
+        X = cp.linspace(-2, 2, num=res_c).reshape((1, res_c))
+        Y = cp.linspace(-2, 2, num=res_c).reshape((res_c, 1))
+        C = cp.tile(X, (res_c, 1)) + 1j * cp.tile(Y, (1, res_c))
+
+        Z = cp.zeros((res_c, res_c), dtype=complex)
+        M = cp.full((res_c, res_c), True, dtype=bool)
+
+        for i in tqdm(range(iterations)):
+            Z[M] = Z[M] * Z[M] + C[M]
+            M[cp.abs(Z) > 2] = False
+
+        M_cpu = cp.asnumpy(M)
+
+        for i in range(res_c):
+            for j in range(res_c):
+                if M_cpu[i, j] == True:
+                    point_c = point_c + 1
+
+                else:
+                    pass
+
+        if res_c == big:
+            x = np.array([m.log2(res_c)])
+            y = np.array([m.log2(point_c)])
+
+
+        else:
+            x = np.append(x, [m.log2(res_c)], axis=0)
+            y = np.append(y, [m.log2(point_c)], axis=0)
+
+
+        res_c = m.floor(res_c * growth_rate) + 1
+        point_c = 0
+
+    x = x.reshape((-1,1))
+    y = y.flatten()
+
+    #call and perform a linear regression on the x and y arrays
+    model = LinearRegression()
+    model.fit(x, y)
+    r_sq = model.score(x, y)
+    #print the results
+    #the slope of the line is the scaling factor, aka, the hausdorff dimension
+    #the intercept is the is the scaling constant, an example for a scaling factor is pi. Pi is the scaling factor a circle.
+    print('r^2:', r_sq)
+    print("The Dimenionsality is:", model.coef_)
+    print("The Scaling Factor is:", model.intercept_)
+
+
+paralleized_mandelbrot_set(50, 5000, 100000, 1.1)
