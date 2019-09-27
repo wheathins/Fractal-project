@@ -219,7 +219,7 @@ def parallelized_mandelbrot_boundary(res_c, res, iterations, growth_rate):
     #print the results
     #the slope of the line is the scaling factor, aka, the hausdorff dimension
     #the intercept is the is the scaling constant, an example for a scaling factor is pi. Pi is the scaling factor a circle.
-    print('r^2:', r_sq)
+    print("r^2:", r_sq)
     print("The Dimenionsality is:", model.coef_)
     print("The Scaling Factor is:", model.intercept_)
 
