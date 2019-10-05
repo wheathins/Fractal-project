@@ -84,62 +84,113 @@ def loopy_mandelbrot_set(res_c, res, iterations, growth_rate):
 
 
 def paralleized_mandelbrot_set(res_c, res, iterations, growth_rate):
-    point_c = 1
-
+    point_c = 0
     big = res_c
+    tile_c_x = 0
+    tile_c_y = 0
+    tile_stop = int(res/5000)
 
     while res_c <= res:
-        mempool = cp.get_default_memory_pool()
-        mempool.free_all_blocks()
+        if res_c < 5000:
+            mempool = cp.get_default_memory_pool()
+            mempool.free_all_blocks()
 
-        print("Next Resolution: ", res_c, "x", res_c, ";Testing ", res_c ** 2, " points")
-        X = cp.linspace(-2, 2, num=res_c).reshape((1, res_c))
-        Y = cp.linspace(-2, 2, num=res_c).reshape((res_c, 1))
-        C = cp.tile(X, (res_c, 1)) + 1j * cp.tile(Y, (1, res_c))
+            print("Next Resolution: ", res_c, "x", res_c, ";Testing ", res_c ** 2, " points")
+            X = cp.linspace(-2, 2, num=res_c).reshape((1, res_c))
+            Y = cp.linspace(-2, 2, num=res_c).reshape((res_c, 1))
+            C = cp.tile(X, (res_c, 1)) + 1j * cp.tile(Y, (1, res_c))
 
-        Z = cp.zeros((res_c, res_c), dtype=complex)
-        M = cp.full((res_c, res_c), True, dtype=bool)
+            Z = cp.zeros((res_c, res_c), dtype=complex)
+            M = cp.full((res_c, res_c), True, dtype=bool)
 
-        for i in tqdm(range(iterations)):
-            Z[M] = Z[M] * Z[M] + C[M]
-            M[cp.abs(Z) > 2] = False
+            for i in tqdm(range(iterations)):
+                Z[M] = Z[M] * Z[M] + C[M]
+                M[cp.abs(Z) > 2] = False
 
-        M_cpu = cp.asnumpy(M)
+                M_cpu = cp.asnumpy(M)
 
-        for i in range(res_c):
-            for j in range(res_c):
-                if M_cpu[i, j] == True:
-                    point_c = point_c + 1
+            for i in range(res_c):
+                for j in range(res_c):
+                    if M_cpu[i, j] == True:
+                        point_c = point_c + 1
 
-                else:
-                    pass
+                    else:
+                        pass
 
-        if res_c == big:
-            x = np.array([m.log2(res_c)])
-            y = np.array([m.log2(point_c)])
+            if res_c == big:
+                x = np.array([m.log10(res_c)])
+                y = np.array([m.log10(point_c)])
 
+
+            else:
+                x = np.append(x, [m.log10(res_c)], axis=0)
+                y = np.append(y, [m.log10(point_c)], axis=0)
+
+
+            res_c = m.floor(res_c * growth_rate) + 1
+            point_c = 0
 
         else:
-            x = np.append(x, [m.log2(res_c)], axis=0)
-            y = np.append(y, [m.log2(point_c)], axis=0)
+            while tile_c_y < tile_stop:
+                while tile_c_x < tile_stop:
+                    step_tile = 4/tile_stop
+                    mempool = cp.get_default_memory_pool()
+                    mempool.free_all_blocks()
+                    start_x = (-2+(step_tile*tile_c_x))
+                    end_x = (-2+(step_tile*(tile_c_x+1)))
+
+                    start_y = (-2+(step_tile*tile_c_y))
+                    end_y = (-2+(step_tile*(tile_c_y+1)))
+
+                    print("Now testing ", 5000*5000, "points")
+                    print("Points, from x: ", start_x, "to ", end_x)
+                    print("Points, from y: ", start_y, "to ", end_y)
+                    X = cp.linspace((-2+(step_tile*tile_c_x)), (-2+(step_tile*(tile_c_x+1))), num=5000).reshape((1, 5000))
+                    Y = cp.linspace((-2+(step_tile*tile_c_y)), (-2+(step_tile*(tile_c_y+1))), num=5000).reshape((5000, 1))
+                    C = cp.tile(X, (5000, 1)) + 1j * cp.tile(Y, (1, 5000))
+
+                    Z = cp.zeros((5000, 5000), dtype=complex)
+                    M = cp.full((5000, 5000), True, dtype=bool)
+
+                    for i in range(iterations):
+                        Z[M] = Z[M] * Z[M] + C[M]
+                        M[cp.abs(Z) > 2] = False
+
+                    M_cpu = cp.asnumpy(M)
+
+                    for i in range(5000):
+                        for j in range(5000):
+                            if M_cpu[i, j] == True:
+                                point_c = point_c + 1
+
+                            else:
+                                pass
 
 
-        res_c = m.floor(res_c * growth_rate) + 1
-        point_c = 0
+
+
+                    tile_c_x = tile_c_x + 1
+
+                tile_c_y = tile_c_y + 1
+                tile_c_x = 0
+            x = np.append(x, [m.log10(res_c)], axis=0)
+            y = np.append(y, [m.log10(point_c)], axis=0)
+
+            res_c = res_c + 5000
+            point_c = 0
+
+
 
     x = x.reshape((-1,1))
     y = y.flatten()
 
-    #call and perform a linear regression on the x and y arrays
     model = LinearRegression()
     model.fit(x, y)
     r_sq = model.score(x, y)
-    #print the results
-    #the slope of the line is the scaling factor, aka, the hausdorff dimension
-    #the intercept is the is the scaling constant, an example for a scaling factor is pi. Pi is the scaling factor a circle.
+
     print('r^2:', r_sq)
     print("The Dimenionsality is:", model.coef_)
     print("The Scaling Factor is:", model.intercept_)
 
 
-paralleized_mandelbrot_set(50, 5000, 100000, 1.1)
+paralleized_mandelbrot_set(50, 25000, 1000, 1.3)
