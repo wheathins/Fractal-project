@@ -29,8 +29,6 @@ def mandelbrot_plot_cpu(res, iterations):
 
             else:
                 pass
-    print(m_b)
-    print(M_cpu)
 
     m_b = m_b.astype('int8')
     m_b = np.flipud(1-m_b) * 265
@@ -68,16 +66,14 @@ def mandelbrot_plot_gpu(res, iterations):
 
             else:
                 pass
-    print(m_b)
-    print(M_cpu)
 
     m_b = m_b.astype('int8')
     m_b = np.flipud(1-m_b) * 265
 
-
     matplotlib.image.imsave('mandelbrotboundary.png', m_b)
-
     mempool.free_all_blocks()
 
 
 mandelbrot_plot_cpu(10000, 64)
+#mandelbrot_plot_gpu(10000, 64)
+
