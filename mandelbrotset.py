@@ -5,18 +5,19 @@ import cupy as cp
 import math as m
 from tqdm import tqdm
 from sklearn.linear_model import LinearRegression
+import matplotlib.pyplot as plt
 
-def paralleized_mandelbrot_set(res_c, res, iter_scaling_factor, growth_rate):
+def mandelbrot_set(res_c, res, iterations, growth_rate):
     point_c = 1
     big = res_c
     tile_c_x = 0
     tile_c_y = 0
     tile_stop = int(res/5000)
     tile_stop_c = 1
+    size_c = 0
 
     while res_c < res:
         if res_c < 5000:
-            iterations = int(res_c*iter_scaling_factor)
             mempool = cp.get_default_memory_pool()
             mempool.free_all_blocks()
 
@@ -34,7 +35,7 @@ def paralleized_mandelbrot_set(res_c, res, iter_scaling_factor, growth_rate):
 
             M_cpu = cp.asnumpy(M)
 
-            print("Now finding boundary")
+            print("Now finding the set")
             for i in tqdm(range(res_c)):
                 for j in range(res_c):
                     if M_cpu[i, j] == True:
@@ -55,6 +56,8 @@ def paralleized_mandelbrot_set(res_c, res, iter_scaling_factor, growth_rate):
 
             res_c = m.floor(res_c * growth_rate) + 1
             point_c = 0
+            size_c = size_c + 1
+
 
         else:
             res_c = 5000
@@ -65,7 +68,6 @@ def paralleized_mandelbrot_set(res_c, res, iter_scaling_factor, growth_rate):
                 mempool = cp.get_default_memory_pool()
                 mempool.free_all_blocks()
                 print("Now testing: ", tile_stop_c, "out of ", tile_stop)
-                iterations = int(res_c*iter_scaling_factor)
 
                 tile_c_x = 0
                 tile_c_y = 0
@@ -112,6 +114,7 @@ def paralleized_mandelbrot_set(res_c, res, iter_scaling_factor, growth_rate):
     x = x.reshape((-1,1))
     y = y.flatten()
 
+
     model = LinearRegression()
     model.fit(x, y)
     r_sq = model.score(x, y)
@@ -120,5 +123,9 @@ def paralleized_mandelbrot_set(res_c, res, iter_scaling_factor, growth_rate):
     print("The Dimenionsality is:", model.coef_)
     print("The Scaling Factor is:", model.intercept_)
 
+    plt.plot(x, y, 'ro')
+    plt.axis([0,10,0,10])
+    plt.show()
 
-paralleized_mandelbrot_set(50, 20000, 3, 1.2)
+
+mandelbrot_set(50, 1000, 500, 1.1)
