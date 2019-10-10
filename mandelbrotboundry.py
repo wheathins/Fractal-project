@@ -96,7 +96,11 @@ def mandelbrot_boundary(res_c, res, iter_scale, growth_rate):
                         print("Now finding the set:")
                         for i in tqdm(range(5000)):
                             for j in range(5000):
-                                if M_cpu[i, j] == True:
+                                a = M_cpu[i, j]
+                                b = M_cpu[(i + 1), j]
+                                c = M_cpu[i, (j + 1)]
+                                d = M_cpu[(i + 1), (j + 1)]
+                                if (a != b) or (a != c) or (a != d) or (b != c) or (b != d) or (c != d):
                                     point_c = point_c + 1
 
                                 else:
